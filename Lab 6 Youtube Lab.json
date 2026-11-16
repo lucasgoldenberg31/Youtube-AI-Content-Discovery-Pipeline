@@ -1,0 +1,311 @@
+{
+  "name": "Lab 6 Youtube Lab",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        560,
+        -128
+      ],
+      "id": "c12e8361-308d-4457-84d3-5a307f4d6452",
+      "name": "When chat message received",
+      "webhookId": "7aa8572f-9c93-46e3-89a4-5c64e71c87d4"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        -144
+      ],
+      "id": "1d9126b1-1550-4f0c-96da-90269dce5f5d",
+      "name": "Load Watch List"
+    },
+    {
+      "parameters": {
+        "resource": "playlistItem",
+        "operation": "getAll",
+        "playlistId": "PL0EIKnMg-NhRdjfglbGWTyKTk7aij0gmC",
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -144
+      ],
+      "id": "163e1eaa-bdfb-4c24-ab7b-54e0b309b3e8",
+      "name": "Get Playlist",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "02OBEKSaeT7558CY",
+          "name": "YouTube account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "get",
+        "videoId": "={{ $json.contentDetails.videoId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        -144
+      ],
+      "id": "1bd1ef47-9b74-4a78-b09f-15bc8e333f0d",
+      "name": "Get Video Details",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "02OBEKSaeT7558CY",
+          "name": "YouTube account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "value": "watch_list",
+          "mode": "id"
+        },
+        "clearStore": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.4,
+      "position": [
+        112,
+        -144
+      ],
+      "id": "fe0e9a29-1ed1-4e90-9dd1-b1894e38cbea",
+      "name": "Store Video Info"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        48,
+        224
+      ],
+      "id": "0c7962db-4d04-4ecd-bb19-4ce523c12992",
+      "name": "Gemini Embeddings",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "tGLPrcphtBPsXuZ1",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "=Song title: {{ $json.snippet.title }}\n\nArtist / channel: {{ $json.snippet.channelTitle }}\n\nPublished: {{ $json.snippet.publishedAt }}\n\nLength: {{ $json.contentDetails.duration }}\n\nViews: {{ $json.statistics.viewCount }}\n\nTags: {{ ($json.snippet.tags || []).join(', ') }}\n\nDescription: {{ ($json.snippet.description || '').slice(0, 1500) }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        64
+      ],
+      "id": "8386c7a0-a8f9-4ac2-9a28-a4d50830ece7",
+      "name": "Video Info Loader"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a friendly music assistant. The user's favorite songs come from their YouTube playlist and are stored in a searchable database.\n\nAlways use the search_watch_list tool before answering any question about the user's music, songs, artists, or playlist. You may call the tool more than once with different search phrases.\n\nOnly name songs that the tool returned. Never invent songs that are not on the user's playlist.\n\nYou may use your own general knowledge about a song or artist (genre, tempo, mood, what the lyrics are about) to explain your answer, but say when you are doing so.\n\nIf the playlist does not contain a good answer, say so honestly."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        768,
+        -128
+      ],
+      "id": "240ce9e5-480c-4278-ac87-56a52921d837",
+      "name": "Watch List Assistant"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        112
+      ],
+      "id": "8103be5c-0d21-4840-81e1-497b2d8405ff",
+      "name": "Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "tGLPrcphtBPsXuZ1",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        800,
+        176
+      ],
+      "id": "7d949852-8118-46b3-9b1f-fa1c899345a9",
+      "name": "Chat Memory"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Searches the user's YouTube music playlist. Input is a short search phrase describing the songs you are looking for, for example \"upbeat happy songs\", \"slow sad songs\", or \"songs by Taylor Swift\". Returns the best-matching songs with their title, artist, length, views, tags, and video description.",
+        "memoryKey": {
+          "__rl": true,
+          "value": "watch_list",
+          "mode": "id"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.4,
+      "position": [
+        976,
+        288
+      ],
+      "id": "29636ed6-cbc8-453a-9cbe-752411ec1746",
+      "name": "Vector Store Retrieval"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Watch List Assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Watch List": {
+      "main": [
+        [
+          {
+            "node": "Get Playlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Playlist": {
+      "main": [
+        [
+          {
+            "node": "Get Video Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video Details": {
+      "main": [
+        [
+          {
+            "node": "Store Video Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Store Video Info",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Vector Store Retrieval",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Info Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Store Video Info",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Watch List Assistant",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Watch List Assistant",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retrieval": {
+      "ai_tool": [
+        [
+          {
+            "node": "Watch List Assistant",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0d28d9bf-288c-4da4-84c1-975e67e78234",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b1ad25cd1d0748df9bff60d6e1aa07f8600bbd183e9661e5ed31c9599f0161a3"
+  },
+  "nodeGroups": [],
+  "id": "JF7FGYgyW3iBAUJW",
+  "tags": []
+}
